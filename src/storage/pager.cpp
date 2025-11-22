@@ -1,49 +1,49 @@
 #include "page.h"
 #include <iostream>
 #include <filesystem>
-#include <stdio.h
+#include <stdexcept>     
+#include <cstdio>    
 
-Pager:Pager(const std:: string& filename, size_t pageSize)
-    : pageSize(pageSize){
-        file.open(filename, std::ios::in | std::ios::out | std::ios::binary);
+Pager::Pager(const std::string& filename, size_t pageSize)
+    : pageSize(pageSize)
+{
+    file.open(filename, std::ios::in | std::ios::out | std::ios::binary);
 
-        if(!file.is_open()){
-
-            file.open(filename, std::ios::out | std::ios::binary);
-            file.close();
-
-            file.opne(filename, std::ios::in | std::ios::out | std::ios::binary)
-        }
-
-        cout << "Pager initialized for file: " << filename << std::endl;
-    }
-
-    Pager::~Pager(){
+    if (!file.is_open()) {
+        file.open(filename, std::ios::out | std::ios::binary);
         file.close();
+
+        file.open(filename, std::ios::in | std::ios::out | std::ios::binary);
     }
 
-    std::vector<uint8_t> Pager::readPage(size_t pageNumber) {
-        std::vector<uint8_t> buffer(pageSize);
+    std::cout << "Pager initialized for file: " << filename << std::endl;
+}
 
-        file.seekg(pageNumber * pageSize, std::ios::beg);
-        file.read(reinterpret_cast<char*>(buffer.data()), pageSize);
+Pager::~Pager() {
+    if (file.is_open())
+        file.close();
+}
 
-        return buffer;
+std::vector<uint8_t> Pager::readPage(size_t pageNumber) {
+    std::vector<uint8_t> buffer(pageSize);
+
+    file.seekg(pageNumber * pageSize, std::ios::beg);
+    file.read(reinterpret_cast<char*>(buffer.data()), pageSize);
+
+    return buffer;
+}
+
+void Pager::writePage(size_t pageNumber, const std::vector<uint8_t>& data) {
+    if (data.size() != pageSize) {
+        throw std::runtime_error("Page data size mismatch");
     }
 
-    void Pager::writPage(size_t pageNumber, const std::vector<uint8_t>& data) {
-        if(data.size() != pageSize){
-            throw std::runtime_error("Page data size mismatch");
-        }
+    file.seekp(pageNumber * pageSize, std::ios::beg);
+    file.write(reinterpret_cast<const char*>(data.data()), pageSize);
+    file.flush();
+}
 
-        file.seekp(pageNumber * pageSize, std::ios::beg);
-
-        file.write(reinterpret_cast<const char*>(data.data()), pageSize);
-
-        file.flush();
-    }
-
-    size_t Pager::numPages() const {
-        auto size = std::filesystem::file_size("data.db");
-        return size / pageSize
-    }
+size_t Pager::numPages() const {
+    size_t size = std::filesystem::file_size("data.db");
+    return size / pageSize;
+}
